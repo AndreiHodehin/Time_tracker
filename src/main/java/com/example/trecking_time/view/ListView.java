@@ -2,11 +2,15 @@ package com.example.trecking_time.view;
 
 import com.example.trecking_time.entity.Activity;
 import com.example.trecking_time.entity.ResultingInfo;
+import com.example.trecking_time.entity.Task;
+import com.example.trecking_time.service.interfaces.ActivityService;
+import com.example.trecking_time.service.interfaces.TaskService;
 import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.notification.Notification;
@@ -14,46 +18,54 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
+import java.util.*;
 
-import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 
 @Route("")
+@Component
+@Scope("prototype")
 public class ListView extends VerticalLayout {
+    private final ActivityService activityService;
+    private final TaskService taskService;
     private final List<String> taskNamesList = new ArrayList<>();
-    {
-        taskNamesList.add("Writing");
-        taskNamesList.add("Speaking");
-        taskNamesList.add("Reading");
-    }
-    private LocalDate currentDay;
+
+    private final LocalDate currentDay;
     private Grid<Activity> grid ;
     private Grid<ResultingInfo> resultGrid ;
     ComboBox<String> activities;
     private final List<Activity> activityList;
     private final List<ResultingInfo> resultingInfos;
+    private GridSortOrder<Activity> order;
 
 
-    public ListView() {
-        activityList = new ArrayList<>();
+
+    public ListView(ActivityService activityService, TaskService taskService) {
+        this.activityService = activityService;
+        this.taskService = taskService;
+
+        activityList = activityService.findAllActivity();
+        taskNamesList.addAll(taskService.findAllTasks().stream()
+                .map(Task::getName)
+                .toList());
+
         resultingInfos = new ArrayList<>();
         currentDay = LocalDate.now();
-
 
         createHeader();
         createWorkingPanel();
         createTotalResult();
         createRecordsGrid();
+        fillResultInfos();
     }
 
 
@@ -83,15 +95,18 @@ public class ListView extends VerticalLayout {
                 showNotification(notif,"Activity in progress");
             } else {
                 Activity newActivity = new Activity(
+                        null,
                         actionName,
                         LocalDate.now(),
-                        LocalTime.now(),
+                        LocalTime.now(Clock.tickSeconds(ZoneId.systemDefault())),
                         null,
                         duration,
                         true
                 );
+                activityService.addActivity(newActivity);
                 activityList.add(newActivity);
                 updateGrid();
+
             }
         });
 
@@ -108,8 +123,9 @@ public class ListView extends VerticalLayout {
                     if(!activity.isInAction()) {
                         showNotification(notif,"Activity not in action");
                     } else {
-                        activity.setEndTime(LocalTime.now());
+                        activity.setEndTime(LocalTime.now(Clock.tickSeconds(ZoneId.systemDefault())));
                         activity.setInAction(false);
+                        activityService.updateActivity(activity);
                         updateResultGrid();
                     }
                 } else {
@@ -123,15 +139,30 @@ public class ListView extends VerticalLayout {
         anotherTaskFill.setPlaceholder("Add new task");
 
         Button addTask = new Button("Add task");
+        addTask.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         addTask.addClickListener(click -> {
             String taskName = anotherTaskFill.getValue();
+            anotherTaskFill.clear();
             if(taskName != null) {
-               refreshActivityBox(taskName);
+                taskNamesList.add(taskName);
+                taskService.createTask(new Task(taskName));
+                refreshActivityBox();
+            }
+        });
+
+        Button deleteTask = new Button("Delete task");
+        deleteTask.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        addTask.addClickListener(click -> {
+            String taskName = activities.getValue();
+            if(taskName != null) {
+                taskNamesList.remove(taskName);
+                taskService.deleteTask(new Task(taskName));
+                refreshActivityBox();
             }
         });
 
         HorizontalLayout panel = new HorizontalLayout();
-        panel.add(activities,durationField,startBtn,stopBtn,anotherTaskFill,addTask);
+        panel.add(activities,durationField,startBtn,stopBtn,anotherTaskFill,addTask,deleteTask);
         panel.setDefaultVerticalComponentAlignment(Alignment.CENTER);
         panel.setAlignItems(Alignment.END);
 
@@ -165,8 +196,13 @@ public class ListView extends VerticalLayout {
         grid = new Grid<>(Activity.class);
         grid.setColumns("name","day","startTime","endTime","expectationDuration","inAction");
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
+        Grid.Column<Activity> orderColumn = grid.getColumnByKey("startTime");
+        order = new GridSortOrder<>(orderColumn, SortDirection.DESCENDING);
+        grid.sort(List.of(order));
         grid.setItems(activityList);
         grid.setAllRowsVisible(true);
+
+
 
         add(grid);
     }
@@ -179,6 +215,7 @@ public class ListView extends VerticalLayout {
 
         resultGrid.setItems(resultingInfos);
         resultGrid.setAllRowsVisible(true);
+
         add(resultGrid);
     }
 
@@ -189,16 +226,10 @@ public class ListView extends VerticalLayout {
 
         for (Map.Entry<String,List<Activity>> set:activityMap.entrySet()) {
             String taskName = set.getKey();
-            Duration totalDuration = Duration.ZERO;
-            for (Activity act:set.getValue()) {
-                if(act.getEndTime() != null && act.getStartTime() != null) {
-                    Duration currentDuration = Duration.between(act.getStartTime(), act.getEndTime());
-                    totalDuration = totalDuration.plus(currentDuration);
-                }
-            }
-            Double avgTarget = set.getValue().stream().collect(Collectors.averagingDouble(Activity::getExpectationDuration));
+            Duration totalDuration = getDuration(set);
+            double avgTarget = set.getValue().stream().collect(Collectors.averagingDouble(Activity::getExpectationDuration)) * 60;
             String success;
-            if(totalDuration.toHours() >= avgTarget) {
+            if(totalDuration.toMinutes() >= avgTarget) {
                 success = "Well done";
             } else {
                 success = "Bad";
@@ -207,6 +238,7 @@ public class ListView extends VerticalLayout {
         }
 
     }
+
 
     private Activity findActivity(String actionName, LocalDate currentDay) {
         List<Activity> activities = activityList.stream()
@@ -230,6 +262,7 @@ public class ListView extends VerticalLayout {
 
     private void updateGrid() {
         grid.setItems(activityList);
+        grid.sort(List.of(order));
     }
 
     private void updateResultGrid() {
@@ -240,10 +273,20 @@ public class ListView extends VerticalLayout {
         notif.setText(msg);
         notif.open();
     }
-    private void refreshActivityBox(String taskName) {
+    private void refreshActivityBox() {
         activities.clear();
-        taskNamesList.add(taskName);
         activities.setItems(taskNamesList);
+    }
+
+    private Duration getDuration(Map.Entry<String, List<Activity>> set) {
+        Duration totalDuration = Duration.ZERO;
+        for (Activity act: set.getValue()) {
+            if(act.getEndTime() != null && act.getStartTime() != null) {
+                Duration currentDuration = Duration.between(act.getStartTime(), act.getEndTime());
+                totalDuration = totalDuration.plus(currentDuration);
+            }
+        }
+        return totalDuration;
     }
 
 }
