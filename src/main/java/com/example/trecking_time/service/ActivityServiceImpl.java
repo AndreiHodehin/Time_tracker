@@ -6,9 +6,9 @@ import com.example.trecking_time.repository.ActivityRepository;
 import com.example.trecking_time.service.interfaces.ActivityService;
 import com.example.trecking_time.utils.Converter;
 import lombok.AllArgsConstructor;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,5 +46,13 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     public List<Activity> findAllActivity() {
         return repository.findAll().stream().map(converter::toDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Activity> findAllActivityByDay(LocalDate date) {
+        return repository.findAllByDay(date)
+                .stream()
+                .map(converter::toDto)
+                .collect(Collectors.toList());
     }
 }

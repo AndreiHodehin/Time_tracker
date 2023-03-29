@@ -1,8 +1,8 @@
 package com.example.trecking_time.service.interfaces;
 
 import com.example.trecking_time.entity.Activity;
-import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 
@@ -13,4 +13,5 @@ public interface ActivityService {
     void deleteActivity(Activity activity);
     Activity findActivityById(Long id);
     List<Activity> findAllActivity();
+    List<Activity> findAllActivityByDay(LocalDate date);
 }

@@ -5,6 +5,7 @@ import com.example.trecking_time.repository.TaskRepository;
 import com.example.trecking_time.service.interfaces.TaskService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -24,8 +25,9 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public void deleteTask(Task task) {
-        repository.delete(task);
+    @Transactional
+    public void deleteTaskByName(String name) {
+        repository.removeByName(name);
     }
 
     @Override
