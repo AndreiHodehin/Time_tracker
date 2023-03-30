@@ -68,13 +68,13 @@ public class ListView extends VerticalLayout {
                 .map(Task::getName)
                 .toList());
         resultingInfos = new ArrayList<>();
+        fillResultInfos();
 
         createHeader();
         createWorkingPanel();
         createTotalResult();
         createDatePickerPanel();
         createRecordsGrid();
-        fillResultInfos();
     }
 
     private void createHeader() {
@@ -222,6 +222,7 @@ public class ListView extends VerticalLayout {
 
     private void createRecordsGrid() {
         activityGrid = new Grid<>(Activity.class);
+
         activityGrid.setColumns("name","day","startTime","endTime","expectationDuration","inAction");
         activityGrid.getColumns().forEach(col -> col.setAutoWidth(true));
         Grid.Column<Activity> orderColumn = activityGrid.getColumnByKey("startTime");
@@ -234,15 +235,23 @@ public class ListView extends VerticalLayout {
     }
 
     private void createTotalResult() {
-        resultGrid = new Grid<>(ResultingInfo.class);
+        resultGrid = new Grid<>(ResultingInfo.class,false);
 
         resultGrid.setColumns("taskName", "totalDuration","success");
+        resultGrid.getColumnByKey("taskName").setFooter("Total");
+        resultGrid.getColumnByKey("totalDuration").setFooter(getAvgDuration());
+
         resultGrid.getColumns().forEach(col -> col.setAutoWidth(true));
 
         resultGrid.setItems(resultingInfos);
         resultGrid.setAllRowsVisible(true);
 
         add(resultGrid);
+    }
+
+    private String getAvgDuration() {
+        long duration =  resultingInfos.stream().mapToLong(result -> result.getTotalDuration().toMinutes()).sum();
+        return String.format("%d:%d",duration/60,duration%60);
     }
 
     private void fillResultInfos() {
