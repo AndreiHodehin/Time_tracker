@@ -22,7 +22,9 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.spring.security.AuthenticationContext;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import jakarta.annotation.security.PermitAll;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -36,7 +38,9 @@ import java.util.stream.Collectors;
 @Component
 @Scope("prototype")
 @PageTitle("Tracking time")
+@PermitAll
 public class ListView extends VerticalLayout {
+    private final transient AuthenticationContext authContext;
     private final ActivityService activityService;
     private final TaskService taskService;
     private LocalDate currentDay;
@@ -51,7 +55,10 @@ public class ListView extends VerticalLayout {
 
 
 
-    public ListView(ActivityService activityService, TaskService taskService) {
+    public ListView(ActivityService activityService,
+                    TaskService taskService,
+                    AuthenticationContext authContext) {
+        this.authContext = authContext;
         this.activityService = activityService;
         this.taskService = taskService;
 
@@ -74,8 +81,11 @@ public class ListView extends VerticalLayout {
         H2 logo = new H2("Tracking time system");
         H4 date = new H4(LocalDate.now().format(DateTimeFormatter.ISO_DATE));
 
+        Button logout = new Button("Logout", click ->
+                this.authContext.logout());
 
-        HorizontalLayout top = new HorizontalLayout(logo,date);
+
+        HorizontalLayout top = new HorizontalLayout(logo,date,logout);
         top.setDefaultVerticalComponentAlignment(Alignment.CENTER);
         top.expand(logo);
         top.setWidthFull();
