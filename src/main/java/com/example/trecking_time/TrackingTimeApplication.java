@@ -6,12 +6,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@PWA(
-        name = "Tracking time",
-        shortName = "Tracking",
-        offlinePath = "offline.html",
-        offlineResources = {"./images/offline.png"}
-)
+//@PWA(
+//        name = "Tracking time",
+//        shortName = "Tracking",
+//        offlinePath = "offline.html",
+//        offlineResources = {"./images/offline.png"}
+//)
 public class TrackingTimeApplication implements AppShellConfigurator {
 
     public static void main(String[] args) {
