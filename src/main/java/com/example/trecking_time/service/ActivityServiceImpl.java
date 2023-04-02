@@ -1,6 +1,6 @@
 package com.example.trecking_time.service;
 
-import com.example.trecking_time.entity.Activity;
+import com.example.trecking_time.entity.dto.Activity;
 import com.example.trecking_time.entity.ActivityEntity;
 import com.example.trecking_time.repository.ActivityRepository;
 import com.example.trecking_time.service.interfaces.ActivityService;
@@ -20,11 +20,10 @@ public class ActivityServiceImpl implements ActivityService {
     private final Converter converter;
 
     @Override
-    public Activity addActivity(Activity activity) {
+    public void addActivity(Activity activity) {
         ActivityEntity entity = converter.toEntity(activity);
         repository.save(entity);
         activity.setId(entity.getId());
-        return activity;
     }
 
     @Override
@@ -51,6 +50,14 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     public List<Activity> findAllActivityByDay(LocalDate date) {
         return repository.findAllByDay(date)
+                .stream()
+                .map(converter::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Activity> findAllActivityByDayAndUserId(LocalDate date, Long id) {
+        return repository.findAllByDayAndUser(date,id)
                 .stream()
                 .map(converter::toDto)
                 .collect(Collectors.toList());

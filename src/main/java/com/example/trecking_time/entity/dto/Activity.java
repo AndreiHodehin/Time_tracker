@@ -1,4 +1,4 @@
-package com.example.trecking_time.entity;
+package com.example.trecking_time.entity.dto;
 
 import lombok.*;
 
@@ -19,4 +19,5 @@ public class Activity {
     private LocalTime endTime;
     private Double expectationDuration;
     private boolean inAction;
+    private Long userId;
 }

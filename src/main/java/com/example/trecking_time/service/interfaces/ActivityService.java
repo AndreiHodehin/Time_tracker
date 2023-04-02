@@ -1,6 +1,6 @@
 package com.example.trecking_time.service.interfaces;
 
-import com.example.trecking_time.entity.Activity;
+import com.example.trecking_time.entity.dto.Activity;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -8,10 +8,11 @@ import java.util.List;
 
 public interface ActivityService {
 
-    Activity addActivity(Activity activity);
+    void addActivity(Activity activity);
     void updateActivity(Activity activity);
     void deleteActivity(Activity activity);
     Activity findActivityById(Long id);
     List<Activity> findAllActivity();
     List<Activity> findAllActivityByDay(LocalDate date);
+    List<Activity> findAllActivityByDayAndUserId(LocalDate date,Long id);
 }

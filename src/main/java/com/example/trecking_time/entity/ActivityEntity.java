@@ -1,8 +1,6 @@
 package com.example.trecking_time.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -24,4 +22,7 @@ public class ActivityEntity {
     private LocalTime endTime;
     private Double expectationDuration;
     private boolean inAction;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }

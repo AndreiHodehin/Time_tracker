@@ -1,4 +1,4 @@
-package com.example.trecking_time.entity;
+package com.example.trecking_time.entity.dto;
 
 import lombok.*;
 

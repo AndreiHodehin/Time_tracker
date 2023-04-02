@@ -1,10 +1,12 @@
 package com.example.trecking_time.view;
 
-import com.example.trecking_time.entity.Activity;
-import com.example.trecking_time.entity.ResultingInfo;
+import com.example.trecking_time.entity.dto.Activity;
+import com.example.trecking_time.entity.dto.ResultingInfo;
 import com.example.trecking_time.entity.Task;
+import com.example.trecking_time.entity.dto.UserDto;
 import com.example.trecking_time.service.interfaces.ActivityService;
 import com.example.trecking_time.service.interfaces.TaskService;
+import com.example.trecking_time.service.interfaces.UserService;
 import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -43,6 +45,7 @@ public class ListView extends VerticalLayout {
     private final transient AuthenticationContext authContext;
     private final ActivityService activityService;
     private final TaskService taskService;
+    private final UserService userService;
     private LocalDate currentDay;
     private Grid<Activity> activityGrid;
     private Grid<ResultingInfo> resultGrid ;
@@ -53,23 +56,28 @@ public class ListView extends VerticalLayout {
     private final List<ResultingInfo> resultingInfos;
     private GridSortOrder<Activity> order;
 
+    private final UserDto user;
 
 
     public ListView(ActivityService activityService,
                     TaskService taskService,
+                    UserService userService,
                     AuthenticationContext authContext) {
         this.authContext = authContext;
         this.activityService = activityService;
         this.taskService = taskService;
+        this.userService = userService;
+        this.user = userService.getUserByName(authContext);
 
         createDatePicker();
-        activityList = activityService.findAllActivityByDay(currentDay);
+
+        activityList = activityService.findAllActivityByDayAndUserId(currentDay, user.getId());
         taskNamesList.addAll(taskService.findAllTasks().stream()
                 .map(Task::getName)
                 .toList());
         resultingInfos = new ArrayList<>();
-        fillResultInfos();
 
+        fillResultInfos();
         createHeader();
         createWorkingPanel();
         createTotalResult();
@@ -133,10 +141,11 @@ public class ListView extends VerticalLayout {
                         LocalTime.now(Clock.tickSeconds(ZoneId.systemDefault())),
                         null,
                         duration,
-                        true
+                        true,
+                        user.getId()
                 );
                 activityService.addActivity(newActivity);
-                refreshListsDueToDay(currentDay);
+                refreshListsDueToDay(currentDay, user.getId());
             }
         });
 
@@ -156,7 +165,7 @@ public class ListView extends VerticalLayout {
                         activity.setEndTime(LocalTime.now(Clock.tickSeconds(ZoneId.systemDefault())));
                         activity.setInAction(false);
                         activityService.updateActivity(activity);
-                        refreshListsDueToDay(currentDay);
+                        refreshListsDueToDay(currentDay,user.getId());
                     }
                 } else {
                     showNotification(notif,"Activity have not been started");
@@ -205,7 +214,7 @@ public class ListView extends VerticalLayout {
         chooseDate.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
         chooseDate.addClickListener(click -> {
             LocalDate selectedDay = datePicker.getValue();
-            refreshListsDueToDay(selectedDay);
+            refreshListsDueToDay(selectedDay, user.getId());
         });
 
         datePickerPanel.setAlignItems(Alignment.END);
@@ -298,6 +307,7 @@ public class ListView extends VerticalLayout {
 
     private void updateResultGrid() {
         fillResultInfos();
+        resultGrid.getColumnByKey("totalDuration").setFooter(getAvgDuration());
         resultGrid.setItems(resultingInfos);
     }
     private void showNotification(Notification notif,String msg) {
@@ -305,8 +315,8 @@ public class ListView extends VerticalLayout {
         notif.open();
     }
 
-    private void refreshListsDueToDay(LocalDate selectedDay) {
-        activityList = activityService.findAllActivityByDay(selectedDay);
+    private void refreshListsDueToDay(LocalDate selectedDay,Long id) {
+        activityList = activityService.findAllActivityByDayAndUserId(selectedDay,id);
         updateGrid();
         updateResultGrid();
     }
