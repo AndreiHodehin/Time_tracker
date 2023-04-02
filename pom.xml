@@ -10,8 +10,8 @@
     <groupId>com.example</groupId>
     <artifactId>Trecking_time</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Trecking_time</name>
-    <description>Trecking_time</description>
+    <name>Tracking_time</name>
+    <description>Tracking_time</description>
     <properties>
         <java.version>17</java.version>
         <vaadin.version>24.0.0</vaadin.version>
